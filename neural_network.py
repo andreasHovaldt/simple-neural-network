@@ -11,7 +11,7 @@ from keras.datasets import mnist
 #
 # C: Cost, the mean squared error (MSE) of the network output to the desired/correct output
 #
-# z: "Weighted input", z = z = w^l * a^(l-1) + b^l
+# z: "Weighted input", z = w^l * a^(l-1) + b^l
 # 
 # a: Activation(s), the neuron outputs, a = sigmoid(z), 
 #    a can also be seen as the input to the next layer of neurons
@@ -205,9 +205,10 @@ class Network():
         weight_gradients = [np.zeros(weights.shape) for weights in self.weights]
         bias_gradients = [np.zeros(biases.shape) for biases in self.biases]
         
-        # Create empty array for storing costs
-        if display_cost: costs = []
         
+        if display_cost: costs = [] # Create empty array for storing costs
+        
+        # Backpropagate for each input and the corresponding desired output
         for input, desired_output in zip(X,y):
             delta_weights, delta_biases, cost = self.backpropagation(input, desired_output, display_cost) # Backpropagate for input
             
@@ -216,7 +217,7 @@ class Network():
             
             if display_cost: costs.append(cost) # Save the cost for each input
             
-        if display_cost: print(np.sum(costs) / len(costs))
+        if display_cost: print(np.sum(costs) / len(costs)) # Calculate the mean cost for the batch
             
         
         ## Weight and bias updating
@@ -245,9 +246,7 @@ class Network():
             
             #random.shuffle(training_data) # Randomly shuffle around the training data TODO: Implement shuffle, while making sure input and desired output still match
             
-            n = len(training_data[0])
-            
-            #training_batches = [training_data[i:i+training_batch_size] for i in range(0, n, training_batch_size)] # Split training data into batches of defined training_batch_size
+            n = len(training_data[0]) # Get number of training inputs (no. of images to train on)
             input_batches = [training_data[0][i:i+training_batch_size] for i in range(0, n, training_batch_size)] # Split training data into batches of defined training_batch_size
             output_batches = [training_data[1][i:i+training_batch_size] for i in range(0, n, training_batch_size)] # Split training data into batches of defined training_batch_size
             
@@ -257,8 +256,7 @@ class Network():
                 self.train_network(input_batch, output_batch, learning_rate, display_cost) # Update the weights and biases using the current training_batch
                 progress_percent = round(i / n_batches *100,1)
                 if (progress_percent % 10) == 0: print(f"Training progress: Epoch {epoch+1} of {epochs} - {progress_percent}%")
-            
-        print("")    
+             
         print("Training done!")
     
 
@@ -276,9 +274,11 @@ class Network():
             
         return correct / len(test_X) # Performance
     
-    def save_network(self):
-        """Calling this function saves the current weights and biases of the network into the current directory"""
+    def save_network(self,performance):
+        """Calling this function saves the characteristics, performance, weights and biases of the network into the current directory"""
         folder_path = os.path.join(os.getcwd(),f"Network_{self.size}") # Get current directory and add name of new folder to the current directory path
+        
+        # Saving the network weights and biases as .txt files within the network folder
         weights_path = os.path.join(folder_path, "Weights") # Directory for weights
         biases_path = os.path.join(folder_path, "Biases") # Directory for biases
         
@@ -290,6 +290,13 @@ class Network():
         
         for L in range(len(self.biases)):
             np.savetxt(f"{biases_path}/layer_{L}",self.biases[L])
+        
+        # Saving the network characteristics as a .txt file within the network folder
+        try: f = open(os.path.join(folder_path,"Network_stats.txt"),"x") # If file doesn't exist it will be create
+        except: f = open(os.path.join(folder_path,"Network_stats.txt"),"w") # If file does exist it will be emptied and rewritten to
+
+        f.write(f"Network structure: {self.size}\nHidden layers: {self.layers - 2}\nHidden neurons: {np.sum(self.size[1:-1])}\nPerformance: {performance}%")
+        f.close()
     
 
 
@@ -302,12 +309,12 @@ class Network():
 def main():
     (train_X, train_y, test_X, test_y) = load_mnist(train_amount=60000, test_amount=10000)
 
-    ntwk = Network([784,50,50,10])
-    ntwk.stochastic_gradient_decent(training_data=(train_X,train_y),epochs=50,training_batch_size=100,learning_rate=0.5,display_cost=False)
+    ntwk = Network([784,50,50,50,50,50,10])
+    ntwk.stochastic_gradient_decent(training_data=(train_X,train_y),epochs=500,training_batch_size=100,learning_rate=0.5,display_cost=False)
     ntwk_performance = ntwk.eval_performance(test_X=test_X, test_y=test_y)
     print(f"Network performance: {ntwk_performance * 100}%")
     
-    ntwk.save_network()
+    ntwk.save_network(ntwk_performance*100)
     
 
 if __name__ == "__main__":
